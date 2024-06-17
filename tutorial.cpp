@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <time.h>
 #include <string.h>
+#include <climits>
 
 using namespace std;
 
@@ -29,11 +30,11 @@ ofstream reward_output;
 int action_sel=2; // 1 is greedy, 2 is e-greedy
 int environment= 2; // 1 is small grid, 2 is Cliff walking
 int algorithm = 1; //1 is Q-learning, 2 is Sarsa
-int stochastic_actions=0; // 0 is deterministic actions, 1 for stochastic actions
+int stochastic_actions=1; // 0 is deterministic actions, 1 for stochastic actions
 int num_episodes=3000; //total learning episodes
 float learn_rate=0.1; // how much the agent weights each new sample
 float disc_factor=0.99; // how much the agent weights future rewards
-float exp_rate=0.3; // how much the agent explores
+float exp_rate=0.05; // how much the agent explores
 ///////////////
 
 
@@ -126,18 +127,44 @@ void Initialize_environment()
 int action_selection()
 { // Based on the action selection method chosen, it selects an action to execute next
     
+    //funcion lambda greedy
+    auto greedy = [](int x, int y){
+        int maxQ = INT_MIN;
+        int choice = -1;
+        for (int i = 0; i < 4; ++i)
+        {
+            if(Qvalues[x][y][i]>maxQ){
+                choice = i;
+                maxQ = Qvalues[x][y][i];
+            }
+        }
 
+        return choice; 
+    };
     
     if(action_sel==1) //Greedy, always selects the action with the largest Q value
     {
-        
-        return rand()%4; //Currently returing a random action, need to code the greedy strategy
+        //para el algoritmo greedy, se seleccionará
+        //el valor de Q más alto (la mejor opción de las 4 posibles)
+        //para la posición actual
+        return greedy(x_pos, y_pos);
     }
     
     if(action_sel==2)//epsilon-greedy, selects the action with the largest Q value with prob (1-exp_rate) and a random action with prob (exp_rate)
     {
-        return rand()%4; //Currently returing a random action, need to code the e-greedy strategy
+    	//usaremos greedy en la mayoría de los casos, peor hay una
+        // probabilidad epsilon de elegir una acción aleatoria
+
+        int prob = rand()%100;
         
+        if(prob<exp_rate*100)
+        {
+            return rand()%4;
+        }
+        else
+        {
+            return greedy(x_pos, y_pos);
+        }
     }
     return 0;
 }
@@ -149,7 +176,7 @@ void move(int action)
     
     //Stochastic transition model (not known by the agent)
     //Assuming a .8 prob that the action will perform as intended, 0.1 prob. of moving instead to the right, 0.1 prob of moving instead to the left
-    
+
     if(stochastic_actions)
     {
         //Code here should change the value of variable action, based on the stochasticity of the action outcome
@@ -207,14 +234,14 @@ void update_q_prev_state() //Updates the Q value of the previous state
     //Update the Q value of the previous state and action if the agent has not reached a terminal state
     if(!( ((x_pos==goalx)&&(y_pos==goaly)) ||((environment==1)&&(x_pos==goalx)&&(y_pos==(goaly-1)))||((environment==2)&&(x_pos>0)&&(x_pos<goalx)&&(y_pos==0))) )
     {
-        
-        
+
+
         Qvalues[prev_x_pos][prev_y_pos][action_taken]= Qvalues[prev_x_pos][prev_y_pos][action_taken]; //How should the Q values be updated?
 
     }
     else//Update the Q value of the previous state and action if the agent has reached a terminal state
     {
-        Qvalues[prev_x_pos][prev_y_pos][action_taken]=  Qvalues[prev_x_pos][prev_y_pos][action_taken];
+     Qvalues[prev_x_pos][prev_y_pos][action_taken]=  Qvalues[prev_x_pos][prev_y_pos][action_taken];
 
     }
     
